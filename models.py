@@ -1,15 +1,14 @@
 import torch
 import torch.nn as nn
-import latent_ode.utils as utils
+import baselines.utils as utils
 import numpy as np
 
 from s4.s4 import S4Block as S4
 from s4.s4d import S4D
 from torch.distributions import Normal
-from dataclasses import dataclass
-from latent_ode.latent_ode import ODEFunc, DiffeqSolver, Decoder, Encoder_z0_RNN
-from latent_ode.latent_ode import ODEGRU, VanillaGRU, VAEGRU, ExpDecayGRU, DeltaTGRU, LatentODE, VanillaLSTM
-from latent_ode.latent_ode import BaseRecurrentModel, BaseVAEModel
+from baselines.baselines import ODEFunc, DiffeqSolver, Decoder, Encoder_z0_RNN
+from baselines.baselines import ODEGRU, VanillaGRU, VAEGRU, ExpDecayGRU, DeltaTGRU, LatentODE, VanillaLSTM
+from baselines.baselines import BaseRecurrentModel, BaseVAEModel
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'

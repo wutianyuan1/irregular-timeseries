@@ -6,7 +6,7 @@ from torch.nn.modules.rnn import GRU, GRUCell, LSTM
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.distributions.normal import Normal
 from torchdiffeq import odeint as odeint
-import latent_ode.utils as utils
+import baselines.utils as utils
 
 
 class ODEFunc(nn.Module):
