@@ -74,7 +74,7 @@ class S4Model(nn.Module):
         x = self.decoder(x)  # (B, d_model) -> (B, d_output)
 
         return x
-    
+
     def param_count(self):
         params = 0
         for param in self.parameters():
@@ -87,8 +87,8 @@ class BaselineModel(nn.Module):
                  n_layers=1, enc_hidden_to_latent_dim=20, ode_tol=1e-5, eps_decay=0):
         super(BaselineModel, self).__init__()
         gen_ode_func = ODEFunc(ode_func_net=utils.create_net(d_model, d_model, n_layers=2, n_units=ode_dim,
-                                                                nonlinear=nn.Tanh)).to(device)
-        diffq_solver = DiffeqSolver(gen_ode_func, 'dopri5', odeint_rtol=ode_tol, odeint_atol=ode_tol/10)
+                                                             nonlinear=nn.Tanh)).to(device)
+        diffq_solver = DiffeqSolver(gen_ode_func, 'dopri5', odeint_rtol=ode_tol, odeint_atol=ode_tol / 10)
 
         # encoder
         encoder = Encoder_z0_RNN(d_model, d_input, hidden_to_z0_units=enc_hidden_to_latent_dim,
@@ -155,21 +155,22 @@ class BaselineModel(nn.Module):
                 decoder=decoder,
                 n_layers=n_layers,
                 device=device).to(device)
-    
+
     def forward(self, x, times):
         # x: (B, L, D_state)
-        if isinstance(self.model, BaseVAEModel) :
-            next_states, _, _, _ = self.model.predict_next_states(x, times.squeeze(-1).to(device),
-                                        torch.full([x.shape[0], ], fill_value=x.shape[1]).to(device))
+        if isinstance(self.model, BaseVAEModel):
+            next_states, _, _, _ = self.model.predict_next_states(
+                x, times.squeeze(-1).to(device),
+                torch.full([x.shape[0], ], fill_value=x.shape[1]).to(device))
         elif isinstance(self.model, BaseRecurrentModel):
             next_states, _ = self.model.predict_next_states(x, times.squeeze(-1).to(device))
         else:
-            raise Exception("Unknown model:" + self.model_name )
+            raise Exception("Unknown model:" + self.model_name)
         return next_states
-    
+
     def __str__(self):
         return self.model_name
-    
+
     def __repr__(self):
         return self.model_name
 

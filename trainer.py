@@ -5,7 +5,6 @@ import yaml
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
-import numpy as np
 
 from datetime import datetime
 from tqdm.auto import tqdm
@@ -44,10 +43,9 @@ class Trainer(object):
             self.model.load_state_dict(checkpoint['model'])
         # log steps and best values
         self.train_log_step = 0
-        self.eval_log_step  = 0
-        self.save_log_step  = 0
-        self.best_loss      = float('inf')  # best eval MSE loss
-
+        self.eval_log_step = 0
+        self.save_log_step = 0
+        self.best_loss = float('inf')  # best eval MSE loss
 
     def build_model(self, model_name, d_input, d_output):
         # Model
@@ -137,7 +135,7 @@ class Trainer(object):
             self.train_log_step += 1
             pbar.set_description(
                 'Batch Idx: (%d/%d) | Loss: %.3f | MSE: %.3f' %
-                (batch_idx, len(self.trainloader), train_loss/(batch_idx+1), loss.item())
+                (batch_idx, len(self.trainloader), train_loss / (batch_idx + 1), loss.item())
             )
 
     def eval_epoch(self, epoch, dataloader, checkpoint=False):
@@ -154,11 +152,11 @@ class Trainer(object):
                 self.eval_log_step += 1
                 pbar.set_description(
                     'Batch Idx: (%d/%d) | Loss: %.3f | MSE: %.3f' %
-                    (batch_idx, len(dataloader), eval_loss/(batch_idx+1), loss.item())
+                    (batch_idx, len(dataloader), eval_loss / (batch_idx + 1), loss.item())
                 )
 
         # Save checkpoint.
-        curr_loss = eval_loss/(batch_idx+1)
+        curr_loss = eval_loss / (batch_idx + 1)
         if checkpoint and curr_loss < self.best_loss:
             state = {
                 'model': self.model.state_dict(),
@@ -186,15 +184,15 @@ class Trainer(object):
             val_curr_loss = self.eval_epoch(epoch, self.valloader, checkpoint=True)
             self.eval_epoch(epoch, self.testloader)
             self.scheduler.step()
-    
+
     def print_seq(input, predict, target):
         f = open("predict.csv", 'a+')
-        l = torch.nn.MSELoss()
+        loss_ = torch.nn.MSELoss()
         for i in range(len(predict)):
             f.write("predict={}\n, target={}\n, loss={}\n\n\n".format(
-                                            list(predict[i].cpu().detach().numpy()),
-                                            list(target[i].cpu().detach().numpy()),
-                                            l(predict[i], target[i]) ))
+                    list(predict[i].cpu().detach().numpy()),
+                    list(target[i].cpu().detach().numpy()),
+                    loss_(predict[i], target[i])))
         f.close()
 
 

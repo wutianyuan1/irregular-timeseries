@@ -1,10 +1,7 @@
-import random
 import torch
 import torch.nn as nn
-from torch.distributions import kl_divergence
 from torch.nn.modules.rnn import GRU, GRUCell, LSTM
 from torch.nn.utils.rnn import pack_padded_sequence
-from torch.distributions.normal import Normal
 from torchdiffeq import odeint as odeint
 import baselines.utils as utils
 
@@ -211,13 +208,13 @@ class VanillaLSTM(BaseRecurrentModel):
     def predict_next_states(self, states, time_steps, train=True):
         hs, (hidden, cell) = self.lstm(states)
         next_states = self.decode_latent_traj(hs)
-        return next_states, hs[:, :-1, :] 
+        return next_states, hs[:, :-1, :]
+
 
 class VanillaGRU(BaseRecurrentModel):
     """
         Vanilla GRU
     """
-
     def __init__(self, input_dim, latent_dim, eps_decay, decoder, device):
         super(VanillaGRU, self).__init__(input_dim, latent_dim, eps_decay, decoder, device)
         self.gru_cell = GRUCell(input_dim, latent_dim)
@@ -394,7 +391,7 @@ class BaseVAEModel(nn.Module):
             if i == 0 or (train and self.eps_decay == 0):
                 data = states[:, i, :]  # [N, D_state+D_action]
             else:
-                data =pred_next_states[-1]
+                data = pred_next_states[-1]
                 if train and self.eps > 0:  # scheduled sampling
                     heads = torch.rand(N) < self.eps  # [N,]
                     data[heads] = states[:, i, :][heads]
@@ -496,4 +493,3 @@ class LatentODE(BaseVAEModel):
         assert new_latent_state.size(0) == N
         assert new_latent_state.size(1) == self.latent_dim
         return new_latent_state
-

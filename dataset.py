@@ -58,9 +58,9 @@ class Walker2dImitationData:
             seq_y = set_y[i]
 
             for t in range(0, seq_y.shape[0] - self.seq_len, self.seq_len // 4):
-                x.append(seq_x[t : t + self.seq_len])
-                times.append(seq_t[t : t + self.seq_len + 1])
-                y.append(seq_y[t : t + self.seq_len])
+                x.append(seq_x[t: t + self.seq_len])
+                times.append(seq_t[t: t + self.seq_len + 1])
+                y.append(seq_y[t: t + self.seq_len])
 
         return (
             np.stack(x, axis=0),
@@ -102,8 +102,8 @@ class Walker2dImitationData:
         for f in files:
 
             arr = np.load(f)
-            x_state = arr[:-1, :].astype(np.float32) # (s_0, s_62)
-            y = arr[1:, :].astype(np.float32) # (s_1, s_63)
+            x_state = arr[:-1, :].astype(np.float32)    # (s_0, s_62)
+            y = arr[1:, :].astype(np.float32)           # (s_1, s_63)
 
             x_times = np.ones(x_state.shape[0])
             all_x.append(x_state)
@@ -119,7 +119,7 @@ class WalkerTorchDataset(torch.utils.data.Dataset):
         self.x = x
         self.y = y
         self.t = t
-    
+
     def __len__(self):
         return len(self.x)
 
@@ -132,10 +132,10 @@ class MujocoDataset(torch.utils.data.Dataset):
         self.data = data
         self.transform = transform
         self.datadim = self.data.shape[-1]
-    
+
     def __len__(self):
         return len(self.data)
-    
+
     def __getitem__(self, i):
         x: np.array = self.data[i]
         y: np.array = np.concatenate([x[1:], x[-1][np.newaxis, :]])
