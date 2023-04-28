@@ -1,0 +1,18 @@
+# Optimizer
+lr: 0.01  # SSM, RNN
+# lr: 0.001 # latent ODE
+weight_decay: 0.01
+# Scheduler
+epochs: 100
+# Dataloader
+num_workers: 4
+batch_size: 64
+# Model
+model: s4
+n_layers: 4
+d_model: 256
+dropout: 0.1
+prenorm: False
+# General
+resume_path: ''
+checkpoint_path: 'checkpoint/'

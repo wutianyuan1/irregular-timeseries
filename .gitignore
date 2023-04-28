@@ -1,0 +1,10 @@
+__pycache__
+log
+models
+data
+checkpoint
+*.pt
+*.pth
+*.csv
+*.txt
+*.pkl
