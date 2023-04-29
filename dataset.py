@@ -73,10 +73,9 @@ class Walker2dImitationData:
         x = []
         times = []
         y = []
-        for i in range(len(set_y)):
+        for i in range(len(set_x)):
 
             seq_x = set_x[i]
-            seq_y = set_y[i]
 
             new_x, new_times = [], []
             new_y = []
@@ -84,10 +83,10 @@ class Walker2dImitationData:
             skip = 0
             t = 0
             new_times.append(t)
-            while t < seq_y.shape[0]:
-                new_x.append(seq_x[t])
-                new_y.append(seq_y[t])
+            while t < seq_x.shape[0] - 5:
                 skip = self.rng.randint(1, 5)
+                new_x.append(seq_x[t])
+                new_y.append(seq_x[t+skip])
                 t += skip
                 new_times.append(t)
             x.append(np.stack(new_x, axis=0))

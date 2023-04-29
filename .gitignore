@@ -8,3 +8,6 @@ checkpoint
 *.csv
 *.txt
 *.pkl
+*.ipynb
+*.png
+*.pdf
