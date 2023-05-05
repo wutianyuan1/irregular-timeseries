@@ -38,7 +38,7 @@ class S4Model(nn.Module):
         # Linear decoder
         self.decoder = nn.Linear(d_model, d_output)
 
-    def forward(self, x, times):
+    def forward(self, x, times=None):
         """
         Input x is shape (B, L, d_input)
         """
