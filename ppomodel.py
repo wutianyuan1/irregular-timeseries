@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.distributions import Categorical
 from torch.nn import functional as F
-from models import S4Model
+from s4.s4 import S4Block
 import torch.optim as optim
 
 
@@ -44,7 +44,9 @@ class ActorCriticModel(nn.Module):
         elif self.recurrence["layer_type"] == "lstm":
             self.recurrent_layer = nn.LSTM(in_features_next_layer, self.recurrence["hidden_state_size"], batch_first=True)
         elif self.recurrence["layer_type"] == "s4":
-            self.recurrent_layer = S4Model(in_features_next_layer, self.recurrence["hidden_state_size"])
+            self.lin_map = nn.Linear(in_features_next_layer, self.recurrence["hidden_state_size"])
+            self.recurrent_layer = S4Block(self.recurrence["hidden_state_size"], transposed=False, lr=0.001, dropout=0.2)
+            self.recurrent_layer.setup_step()
         # Init recurrent layer
         if self.recurrence['layer_type'] != 's4':
             for name, param in self.recurrent_layer.named_parameters():
@@ -107,8 +109,8 @@ class ActorCriticModel(nn.Module):
         if sequence_length == 1:
             # Case: sampling training data or model optimization using sequence length == 1
             if self.recurrence['layer_type'] == 's4':
-                h = self.recurrent_layer(h.unsqueeze(1))
-                recurrent_cell = None
+                h = self.lin_map(h)
+                h, recurrent_cell = self.recurrent_layer.step(h, recurrent_cell)
             else:
                 h, recurrent_cell = self.recurrent_layer(h.unsqueeze(1), recurrent_cell)
             h = h.squeeze(1) # Remove sequence length dimension
@@ -120,8 +122,8 @@ class ActorCriticModel(nn.Module):
 
             # Forward recurrent layer
             if self.recurrence['layer_type'] == 's4':
-                h = self.recurrent_layer(h)
-                recurrent_cell = None
+                h = self.lin_map(h)
+                h, recurrent_cell = self.recurrent_layer(h)
             else:
                 h, recurrent_cell = self.recurrent_layer(h, recurrent_cell)
 
@@ -171,6 +173,8 @@ class ActorCriticModel(nn.Module):
             {tuple} -- Depending on the used recurrent layer type, just hidden states (gru) or both hidden states and
                      cell states are returned using initial values.
         """
+        if self.recurrence["layer_type"] == "s4":
+            return self.recurrent_layer.default_state(num_sequences), None
         hxs = torch.zeros((num_sequences), self.recurrence["hidden_state_size"], dtype=torch.float32, device=device).unsqueeze(0)
         cxs = None
         if self.recurrence["layer_type"] == "lstm":

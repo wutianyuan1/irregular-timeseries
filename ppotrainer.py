@@ -99,7 +99,7 @@ class PPOTrainer:
         self.model = ActorCriticModel(self.config, self.observation_space, self.action_space_shape).to(self.device)
         self.model.train()
         if self.recurrence['layer_type'] == 's4':
-            self.optimizer, scheduler = setup_optimizer(self.model, self.lr_schedule['initial'], weight_decay=0.01, epochs=100)
+            self.optimizer, self.scheduler = setup_optimizer(self.model, self.lr_schedule['initial'], weight_decay=0.01, epochs=400)
         else:
             self.optimizer = optim.AdamW(self.model.parameters(), lr=self.lr_schedule["initial"])
 
@@ -117,7 +117,7 @@ class PPOTrainer:
         elif self.recurrence["layer_type"] == "lstm":
             self.recurrent_cell = (hxs, cxs)
         elif self.recurrence["layer_type"] == 's4':
-            self.recurrent_cell = None
+            self.recurrent_cell = hxs
 
         # Reset workers (i.e. environments)
         print("Step 5: Reset workers")
@@ -256,6 +256,8 @@ class PPOTrainer:
             mini_batch_generator = self.buffer.recurrent_mini_batch_generator()
             for mini_batch in mini_batch_generator:
                 train_info.append(self._train_mini_batch(mini_batch, learning_rate, clip_range, beta))
+            if self.recurrence['layer_type'] == 's4':
+                self.scheduler.step()
         return train_info
 
     def _train_mini_batch(self, samples:dict, learning_rate:float, clip_range:float, beta:float) -> list:
@@ -317,8 +319,9 @@ class PPOTrainer:
         loss = -(policy_loss - self.config["value_loss_coefficient"] * vf_loss + beta * entropy_bonus)
 
         # Compute gradients
-        for pg in self.optimizer.param_groups:
-            pg["lr"] = learning_rate
+        if self.recurrence['layer_type'] != 's4':
+            for pg in self.optimizer.param_groups:
+                pg["lr"] = learning_rate
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.config["max_grad_norm"])

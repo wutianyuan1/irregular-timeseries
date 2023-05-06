@@ -12,11 +12,11 @@ hidden_layer_size: 128
 max_grad_norm: 0.5
 recurrence: 
     sequence_length: 8
-    hidden_state_size: 64
+    hidden_state_size: 256
     layer_type: s4
-    reset_hidden_state: True
+    reset_hidden_state: False
 learning_rate_schedule:
-    initial: 3.0e-4
+    initial: 3.0e-3
     final: 3.0e-6
     power: 1.0
     max_decay_steps: 100
