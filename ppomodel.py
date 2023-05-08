@@ -1,14 +1,18 @@
 import numpy as np
 import torch
 from torch import nn
-from torch.distributions import Categorical
+from torch.distributions import Categorical, Normal
 from torch.nn import functional as F
 from s4.s4 import S4Block
 import torch.optim as optim
 
 
+SIGMA_MIN = -20
+SIGMA_MAX = 2
+
+
 class ActorCriticModel(nn.Module):
-    def __init__(self, config, observation_space, action_space_shape):
+    def __init__(self, config, observation_space, action_space_shape, continuous=False):
         """Model setup
 
         Arguments:
@@ -70,11 +74,17 @@ class ActorCriticModel(nn.Module):
 
         # Outputs / Model heads
         # Policy (Multi-discrete categorical distribution)
-        self.policy_branches = nn.ModuleList()
-        for num_actions in action_space_shape:
-            actor_branch = nn.Linear(in_features=self.hidden_size, out_features=num_actions)
-            nn.init.orthogonal_(actor_branch.weight, np.sqrt(0.01))
-            self.policy_branches.append(actor_branch)
+        self.continuous = continuous
+        if self.continuous:
+            print("continuous:", action_space_shape)
+            self.mu = nn.Linear(in_features=self.hidden_size, out_features=action_space_shape[0])
+            self.sigma = nn.Linear(in_features=self.hidden_size, out_features=action_space_shape[0])
+        else:
+            self.policy_branches = nn.ModuleList()
+            for num_actions in action_space_shape:
+                actor_branch = nn.Linear(in_features=self.hidden_size, out_features=num_actions)
+                nn.init.orthogonal_(actor_branch.weight, np.sqrt(0.01))
+                self.policy_branches.append(actor_branch)
 
         # Value function
         self.value = nn.Linear(self.hidden_size, 1)
@@ -144,7 +154,12 @@ class ActorCriticModel(nn.Module):
         # Head: Value function
         value = self.value(h_value).reshape(-1)
         # Head: Policy
-        pi = [Categorical(logits=branch(h_policy)) for branch in self.policy_branches]
+        if self.continuous:
+            mu = self.mu(h_policy)
+            sigma = torch.clamp(self.sigma(h_policy), min=SIGMA_MIN, max=SIGMA_MAX).exp()
+            pi = [Normal(loc=mu, scale=sigma)]
+        else:
+            pi = [Categorical(logits=branch(h_policy)) for branch in self.policy_branches]
 
         return pi, value, recurrent_cell
 

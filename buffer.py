@@ -4,7 +4,7 @@ import numpy as np
 
 class Buffer():
     """The buffer stores and prepares the training data. It supports recurrent policies. """
-    def __init__(self, config:dict, observation_space:spaces.Box, action_space_shape:tuple, device:torch.device) -> None:
+    def __init__(self, config:dict, observation_space:spaces.Box, action_space_shape:tuple, device:torch.device, continuous=False) -> None:
         """
         Arguments:
             config {dict} -- Configuration and hyperparameters of the environment, trainer and model.
@@ -26,7 +26,10 @@ class Buffer():
 
         # Initialize the buffer's data storage
         self.rewards = np.zeros((self.n_workers, self.worker_steps), dtype=np.float32)
-        self.actions = torch.zeros((self.n_workers, self.worker_steps, len(action_space_shape)), dtype=torch.long)
+        if continuous:
+            self.actions = torch.zeros((self.n_workers, self.worker_steps, len(action_space_shape)), dtype=torch.float)
+        else:
+            self.actions = torch.zeros((self.n_workers, self.worker_steps, len(action_space_shape)), dtype=torch.long)
         self.dones = np.zeros((self.n_workers, self.worker_steps), dtype=np.bool)
         self.obs = torch.zeros((self.n_workers, self.worker_steps) + observation_space.shape)
         self.hxs = torch.zeros((self.n_workers, self.worker_steps, hidden_state_size))

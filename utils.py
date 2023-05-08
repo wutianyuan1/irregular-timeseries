@@ -2,6 +2,9 @@ from environments.cartpole_env import CartPole
 from environments.minigrid_env import Minigrid
 from environments.poc_memory_env import PocMemoryEnv
 from environments.memory_gym_env import MemoryGymWrapper
+from environments.mujoco_env import MujocoTimeEnv
+import gymnasium as gym
+
 
 def create_env(config:dict, render:bool=False):
     """Initializes an environment based on the provided environment name.
@@ -22,6 +25,8 @@ def create_env(config:dict, render:bool=False):
         return Minigrid(env_name = config["name"], realtime_mode = render)
     if config["type"] == "MemoryGym":
         return MemoryGymWrapper(env_name = config["name"], reset_params=config["reset_params"], realtime_mode = render)
+    if config['type'] == 'Mujoco':
+        return MujocoTimeEnv(env=gym.make(config['name']), state_with_time=config['state_with_time'])
 
 def polynomial_decay(initial:float, final:float, max_decay_steps:int, power:float, current_step:int) -> float:
     """Decays hyperparameters polynomially. If power is set to 1.0, the decay behaves linearly. 

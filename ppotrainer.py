@@ -3,6 +3,7 @@ import os
 import pickle
 import torch
 import time
+import gymnasium.spaces as spaces
 from torch import optim
 from buffer import Buffer
 from ppomodel import ActorCriticModel
@@ -87,16 +88,24 @@ class PPOTrainer:
         print("Step 1: Init dummy environment")
         dummy_env = create_env(self.config["environment"])
         self.observation_space = dummy_env.observation_space
-        self.action_space_shape = (dummy_env.action_space.n,)
+        if isinstance(dummy_env.action_space, spaces.Discrete):
+            self.action_space_shape = (dummy_env.action_space.n,)
+            self.continuous = False
+        if isinstance(dummy_env.action_space, spaces.Box):
+            self.action_space_shape = dummy_env.action_space.shape
+            self.continuous = True
         dummy_env.close()
 
         # Init buffer
         print("Step 2: Init buffer")
-        self.buffer = Buffer(self.config, self.observation_space, self.action_space_shape, self.device)
+        if not self.continuous:
+            self.buffer = Buffer(self.config, self.observation_space, self.action_space_shape, self.device, continuous=False)
+        else:
+            self.buffer = Buffer(self.config, self.observation_space, torch.zeros(np.prod(self.action_space_shape)), self.device, continuous=True)
 
         # Init model
         print("Step 3: Init model and optimizer")
-        self.model = ActorCriticModel(self.config, self.observation_space, self.action_space_shape).to(self.device)
+        self.model = ActorCriticModel(self.config, self.observation_space, self.action_space_shape, self.continuous).to(self.device)
         self.model.train()
         if self.recurrence['layer_type'] == 's4':
             self.optimizer, self.scheduler = setup_optimizer(self.model, self.lr_schedule['initial'], weight_decay=0.01, epochs=400)
@@ -206,8 +215,12 @@ class PPOTrainer:
                     actions.append(action)
                     log_probs.append(action_branch.log_prob(action))
                 # Write actions, log_probs and values to buffer
-                self.buffer.actions[:, t] = torch.stack(actions, dim=1)
-                self.buffer.log_probs[:, t] = torch.stack(log_probs, dim=1)
+                if self.continuous:
+                    self.buffer.actions[:, t, :] = actions[0]
+                    self.buffer.log_probs[:, t, :] = log_probs[0]
+                else:
+                    self.buffer.actions[:, t] = torch.stack(actions, dim=1)
+                    self.buffer.log_probs[:, t] = torch.stack(log_probs, dim=1)
 
             # Send actions to the environments
             for w, worker in enumerate(self.workers):
@@ -286,11 +299,15 @@ class PPOTrainer:
         # Policy Loss
         # Retrieve and process log_probs from each policy branch
         log_probs, entropies = [], []
+        # print("action shape", samples["actions"].shape, "mask:", samples["loss_mask"].shape)
         for i, policy_branch in enumerate(policy):
-            log_probs.append(policy_branch.log_prob(samples["actions"][:, i]))
+            act = samples["actions"][:, i] if not self.continuous else samples["actions"]
+            log_probs.append(policy_branch.log_prob(act))
             entropies.append(policy_branch.entropy())
         log_probs = torch.stack(log_probs, dim=1)
-        entropies = torch.stack(entropies, dim=1).sum(1).reshape(-1)
+        entropies = torch.stack(entropies, dim=1)
+        if not self.continuous:
+            entropies = entropies.sum(1).reshape(-1)
         
         # Remove paddings
         value = value[samples["loss_mask"]]
